@@ -1,0 +1,453 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS CloudFormation Template To Provision AWS Resources - Welbilt
+################################################################################
+# AWS Resources - Welbilt.
+################################################################################
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Welbilt - AWS resource configuration parameters
+        Parameters:
+        - UnitManagementUnitProvisioningFnName
+        - UnitMgmtlambdaTimeout
+        - UnitMgmtlambdaSize
+        - ReportMgmtlambdaTimeout
+        - ReportMgmtlambdaSize
+        - UnitErrorAgglambdaTimeout
+        - UnitErrorAgglambdaSize
+        - NotPreplambdaTimeout
+        - NotPreplambdaSize
+        - NotEmaillambdaTimeout
+        - NotEmaillambdaSize
+        - NotSMSlambdaTimeout
+        - NotSMSlambdaSize
+        - Runtime
+        - ServicesBucketName
+        - UnitMgmtBucketKey
+        - UnitMgmtTopicRuleName
+        - ProductionReportConsumptionDataTopicRuleName
+        - NotificationsRuleTopicRuleName
+        - ReportManagementAggregationFnName
+        - ReportManagementBucketKey
+        - UnitErrorAggregatorTopicRuleName
+        - UnitErrorsAggregatorFn
+        - UnitErrorsBucketKey
+        - NotificationPreperationFunction
+        - NotificationPreparationFile
+        - NotificationEmailFunction
+        - NotificationSMSFunction
+        - NotificationEmailFile
+        - NotificationSMSFile
+        - WelbiltKitchenConnectNotificationEmailTopic
+        - WelbiltKitchenConnectNotificationSMSTopic
+        - SecGrpID
+        - SubnetID1
+        - SubnetID2
+        - NotPrepDatabaseName
+        - UnitErrorAggDatabaseName
+        - ReportMgmtAggDatabaseName
+        - DatabaseMigratonRequired
+        - DatabaseType
+        - AwsSsmRegion
+
+        
+Parameters:
+  UnitManagementUnitProvisioningFnName:
+    Type: String
+  UnitMgmtTopicRuleName:
+    Type: String
+  UnitMgmtlambdaTimeout:
+    Type: String
+  UnitMgmtlambdaSize:
+    Type: String
+  ReportMgmtlambdaTimeout:
+    Type: String
+  ReportMgmtlambdaSize:
+    Type: String
+  UnitErrorAgglambdaTimeout:
+    Type: String
+  UnitErrorAgglambdaSize:
+    Type: String
+  NotPreplambdaTimeout:
+    Type: String
+  NotPreplambdaSize:
+    Type: String
+  NotEmaillambdaTimeout:
+    Type: String
+  NotEmaillambdaSize:
+    Type: String
+  NotSMSlambdaTimeout:
+    Type: String
+  NotSMSlambdaSize:
+    Type: String
+  Runtime:
+    Type: String
+  ServicesBucketName:
+    Type: String
+  UnitMgmtBucketKey:
+    Type: String
+  ProductionReportConsumptionDataTopicRuleName:
+    Type: String
+  NotificationsRuleTopicRuleName:
+    Type: String
+  ReportManagementAggregationFnName:
+    Type: String
+  ReportManagementBucketKey:
+    Type: String
+  UnitErrorAggregatorTopicRuleName:
+     Type: String
+  UnitErrorsAggregatorFn:
+     Type: String
+  UnitErrorsBucketKey:
+    Type: String
+  NotificationPreperationFunction:
+    Type: String
+  NotificationPreparationFile:
+     Type: String
+  NotificationEmailFunction:
+     Type: String
+  NotificationSMSFunction:
+     Type: String
+  NotificationEmailFile:
+     Type: String
+  NotificationSMSFile:
+     Type: String
+  WelbiltKitchenConnectNotificationEmailTopic:
+     Type: String
+  WelbiltKitchenConnectNotificationSMSTopic:
+     Type: String
+  SecGrpID:
+     Type: String
+  SubnetID1:
+     Type: String
+  SubnetID2:
+     Type: String
+  NotPrepDatabaseName:
+    Type: "String"
+  UnitErrorAggDatabaseName:
+    Type: "String"
+  ReportMgmtAggDatabaseName:
+    Type: "String"
+  DatabaseMigratonRequired:
+    Type: "String"
+  DatabaseType:
+    Type: "String"
+  AwsSsmRegion:
+    Type: "String"
+
+
+Resources:
+  LambdaRepublishRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      Policies:
+        - PolicyName: LambdaRepublish
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: logs:*
+                Resource: arn:aws:logs:*:*:*
+              - Effect: Allow
+                Action: iot:Publish
+                Resource: !Join [ "", [ "arn:aws:iot:", !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":topic/output/*" ] ]
+              - Effect: Allow
+                Action:
+                  - "rds:*"
+                  - "ec2:CreateNetworkInterface"
+                  - "ec2:DescribeNetworkInterfaces"
+                  - "ec2:DeleteNetworkInterface"
+                  - "ssm:GetParameters"
+                  - "ssm:GetParameter"
+                  - "ssm:GetParametersByPath" 
+                Resource: arn:aws:logs:*:*:*       
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+        - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
+        - arn:aws:iam::aws:policy/AWSIoTFullAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole  
+
+  UnitManagementUnitProvisioningFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref UnitManagementUnitProvisioningFnName
+      Role: !GetAtt LambdaRepublishRole.Arn
+      Handler: event-update-functions/unit-state-update.handler
+      Runtime: !Ref Runtime
+      Timeout: !Ref UnitMgmtlambdaTimeout
+      MemorySize: !Ref UnitMgmtlambdaSize
+      Code: 
+        S3Bucket: !Ref ServicesBucketName
+        S3Key: !Ref UnitMgmtBucketKey
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecGrpID
+        SubnetIds:
+          - !Ref SubnetID1
+          - !Ref SubnetID2
+  
+  UnitManagementUnitProvisioningFnLambdaInvocationPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      SourceArn: !Join [ "", [ "arn:aws:iot:", !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":rule/", !Ref "UnitMgmtTopicRule" ] ]
+      Action: lambda:InvokeFunction
+      Principal: iot.amazonaws.com
+      FunctionName: !GetAtt UnitManagementUnitProvisioningFn.Arn
+      SourceAccount: !Ref AWS::AccountId
+  
+  UnitMgmtTopicRule: 
+    Type: AWS::IoT::TopicRule
+    Properties: 
+      RuleName: !Ref UnitMgmtTopicRuleName
+      TopicRulePayload: 
+        RuleDisabled: "false"
+        Sql: select clientId, eventType from '$aws/events/presence/+/+'
+        Actions: 
+          -
+            Lambda:
+              FunctionArn: !GetAtt UnitManagementUnitProvisioningFn.Arn
+
+  ProductionReportConsumptionDataTopicRule: 
+    Type: AWS::IoT::TopicRule
+    Properties: 
+      RuleName: !Ref ProductionReportConsumptionDataTopicRuleName
+      TopicRulePayload: 
+        RuleDisabled: "false"
+        Sql: select * from 'things/+/productIdent'
+        Actions: 
+          -
+            Lambda:
+              FunctionArn: !GetAtt ReportManagementAggregationFn.Arn  
+
+  NotificationsRuleTopicRule: 
+    Type: AWS::IoT::TopicRule
+    Properties: 
+      RuleName: !Ref NotificationsRuleTopicRuleName
+      TopicRulePayload: 
+        RuleDisabled: "false"
+        Sql: select * from 'things/+/dtsevent' where activity = '1'
+        Actions: 
+          -
+            Lambda:
+              FunctionArn: !GetAtt NotificationPreparationLambda.Arn  
+
+  ReportManagementAggregationFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref ReportManagementAggregationFnName
+      Role: !GetAtt LambdaRepublishRole.Arn
+      Handler: app.handler
+      Runtime: !Ref Runtime
+      Timeout: !Ref ReportMgmtlambdaTimeout
+      MemorySize: !Ref ReportMgmtlambdaSize
+      Code: 
+        S3Bucket: !Ref ServicesBucketName
+        S3Key: !Ref ReportManagementBucketKey
+      Environment:
+        Variables:
+          AWS_RDS_DATABASE: !Ref "ReportMgmtAggDatabaseName"
+          DB_MIG_REQ: !Ref "DatabaseMigratonRequired"
+          DB_TYPE: !Ref "DatabaseType"
+          AWS_SSM_REGION: !Ref "AwsSsmRegion"
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecGrpID
+        SubnetIds:
+          - !Ref SubnetID1
+          - !Ref SubnetID2
+  
+  ReportManagementAggregationFnLambdaInvocationPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      SourceArn: !Join [ "", [ "arn:aws:iot:", !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":rule/", !Ref "ProductionReportConsumptionDataTopicRule" ] ]
+      Action: lambda:InvokeFunction
+      Principal: iot.amazonaws.com
+      FunctionName: !GetAtt ReportManagementAggregationFn.Arn
+      SourceAccount: !Ref AWS::AccountId
+
+  UnitErrorAggregatorTopicRule: 
+    Type: AWS::IoT::TopicRule
+    Properties: 
+      RuleName: !Ref UnitErrorAggregatorTopicRuleName
+      TopicRulePayload: 
+        RuleDisabled: "false"
+        Sql: select * from 'things/+/dtsevent'
+        Actions: 
+          -
+            Lambda:
+              FunctionArn: !GetAtt UnitErrorsAggregator.Arn 
+  
+  UnitErrorsAggregator:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref UnitErrorsAggregatorFn
+      Role: !GetAtt LambdaRepublishRole.Arn
+      Handler: app.handler
+      Runtime: !Ref Runtime
+      Timeout: !Ref UnitErrorAgglambdaTimeout
+      MemorySize: !Ref UnitErrorAgglambdaSize
+      Code: 
+        S3Bucket: !Ref ServicesBucketName
+        S3Key: !Ref UnitErrorsBucketKey
+      Environment:
+        Variables:
+          AWS_RDS_DATABASE: !Ref "UnitErrorAggDatabaseName"
+          DB_MIG_REQ: !Ref "DatabaseMigratonRequired"
+          DB_TYPE: !Ref "DatabaseType"
+          AWS_SSM_REGION: !Ref "AwsSsmRegion"
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecGrpID
+        SubnetIds:
+          - !Ref SubnetID1
+          - !Ref SubnetID2
+
+  UnitErrorsAggregatorLambdaInvocationPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      SourceArn: !Join [ "", [ "arn:aws:iot:", !Ref "AWS::Region", ":", !Ref "AWS::AccountId", ":rule/", !Ref "UnitErrorAggregatorTopicRule" ] ]
+      Action: lambda:InvokeFunction
+      Principal: iot.amazonaws.com
+      FunctionName: !GetAtt UnitErrorsAggregator.Arn
+      SourceAccount: !Ref AWS::AccountId
+
+  NotificationPreparationLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref NotificationPreperationFunction
+      Code:
+        S3Bucket: !Ref ServicesBucketName
+        S3Key: !Ref NotificationPreparationFile
+      Handler: app.handler
+      Role: !GetAtt ExecutionRole.Arn
+      Runtime: !Ref Runtime
+      Timeout: !Ref NotPreplambdaTimeout
+      MemorySize: !Ref NotPreplambdaSize
+      Environment:
+        Variables:
+          AWS_RDS_DATABASE: !Ref "NotPrepDatabaseName"
+          DB_MIG_REQ: !Ref "DatabaseMigratonRequired"
+          DB_TYPE: !Ref "DatabaseType"
+          AWS_SSM_REGION: !Ref "AwsSsmRegion"
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecGrpID
+        SubnetIds:
+          - !Ref SubnetID1
+          - !Ref SubnetID2
+  
+  NotificationEmailLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref NotificationEmailFunction
+      Code:
+        S3Bucket: !Ref ServicesBucketName
+        S3Key: !Ref NotificationEmailFile
+      Handler: app.handler
+      Role: !GetAtt ExecutionRole.Arn
+      Runtime: !Ref Runtime
+      Timeout: !Ref NotEmaillambdaTimeout
+      MemorySize: !Ref NotEmaillambdaSize
+      Environment:
+        Variables:
+          AWS_SSM_REGION: !Ref "AwsSsmRegion"
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecGrpID
+        SubnetIds:
+          - !Ref SubnetID1
+          - !Ref SubnetID2
+  
+  NotificationSMSLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref NotificationSMSFunction
+      Code:
+        S3Bucket: !Ref ServicesBucketName
+        S3Key: !Ref NotificationSMSFile
+      Handler: app.handler
+      Role: !GetAtt ExecutionRole.Arn
+      Runtime: !Ref Runtime
+      Timeout: !Ref NotSMSlambdaTimeout
+      MemorySize: !Ref NotSMSlambdaSize
+      Environment:
+        Variables:
+          AWS_SSM_REGION: !Ref "AwsSsmRegion"
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecGrpID
+        SubnetIds:
+          - !Ref SubnetID1
+          - !Ref SubnetID2
+  
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Policies:
+        - PolicyName: CloudwatchLogs
+          PolicyDocument:
+            Statement:
+            - Effect: Allow
+              Action:
+                - "logs:CreateLogGroup"
+                - "logs:CreateLogStream"
+                - "logs:PutLogEvents"
+                - "xray:PutTraceSegments"
+                - "xray:PutTelemetryRecords"
+                - "rds:*"
+                - "ec2:CreateNetworkInterface"
+                - "ec2:DescribeNetworkInterfaces"
+                - "ec2:DeleteNetworkInterface"
+                - "ssm:GetParameters"
+                - "ssm:GetParameter"
+                - "ssm:GetParametersByPath" 
+                - "sns:*"
+                - "ses:*"
+              Resource: arn:aws:logs:*:*:*       
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+        - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
+        - arn:aws:iam::aws:policy/AWSIoTFullAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole   
+  
+  EMailSNSTopic: 
+    Type: AWS::SNS::Topic
+    Properties: 
+      Subscription: 
+        - 
+           Endpoint: 
+             Fn::GetAtt: 
+               - "NotificationEmailLambda"
+               - "Arn"
+           Protocol: "Lambda"
+      TopicName: !Ref WelbiltKitchenConnectNotificationEmailTopic
+  
+  SMSSNSTopic: 
+    Type: AWS::SNS::Topic
+    Properties: 
+      Subscription: 
+        - 
+           Endpoint: 
+             Fn::GetAtt: 
+               - "NotificationSMSLambda"
+               - "Arn"
+           Protocol: "Lambda"
+      TopicName: !Ref WelbiltKitchenConnectNotificationSMSTopic
