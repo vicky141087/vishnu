@@ -11,6 +11,7 @@ resource "azurerm_key_vault" "terrakeyvault" {
   name           = "my-keyvault"
   location       = "West US 2"
   tenant_id		 = "189de737-c93a-4f5a-8b68-6f4ca9941912"
+  resource_group_name = "${azurerm_resource_group.res-grp.name}"
   sku {
     name = "my-sku-keyvault"
   }
@@ -35,7 +36,7 @@ resource "azurerm_managed_disk" "disk" {
 }
 
 resource "azurerm_storage_account" "storage_account" {
-  name                     = "my-storageAccount"
+  name                     = "mystorageaccount"
   resource_group_name      = "${azurerm_resource_group.res-grp.name}"
   location                 = "West US 2"
   account_tier             = "Standard"
@@ -43,7 +44,7 @@ resource "azurerm_storage_account" "storage_account" {
 }
 
 resource "azurerm_storage_container" "storage_container" {
-  name         = "my-storageContainer"
+  name         = "mystoragecontainer"
   resource_group_name   = "${azurerm_resource_group.res-grp.name}"
   storage_account_name  = "${azurerm_storage_account.storage_account.name}"
   container_access_type = "private"
@@ -51,7 +52,7 @@ resource "azurerm_storage_container" "storage_container" {
 }
 
 resource "azurerm_storage_blob" "blob_storage" {
-  name           = "my-blobstorage"
+  name           = "myblobstorage"
   resource_group_name    = "${azurerm_resource_group.res-grp.name}"
   storage_account_name   = "${azurerm_storage_account.storage_account.name}"
   storage_container_name = "${azurerm_storage_account.storage_container.name}"
