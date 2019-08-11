@@ -42,6 +42,9 @@ resource "azurerm_storage_account" "storage_account" {
   location                 = "West US 2"
   account_tier             = "Standard"
     account_replication_type = "LRS"
+  enable_blob_encryption = "true"
+  enable_file_encryption = "true"
+  account_encryption_source = "${azurerm_key_vault.terrakeyvault.id}"
 }
 
 resource "azurerm_storage_container" "storage_container" {
