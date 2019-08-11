@@ -10,6 +10,7 @@ resource "azurerm_resource_group" "res-grp" {
 resource "azurerm_key_vault" "terrakeyvault" {
   name           = "my-keyvault"
   location       = "West US 2"
+  tenant_id		 = "189de737-c93a-4f5a-8b68-6f4ca9941912"
   sku {
     name = "my-sku-keyvault"
   }
