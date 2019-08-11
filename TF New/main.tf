@@ -13,7 +13,7 @@ resource "azurerm_key_vault" "terrakeyvault" {
   tenant_id		 = "189de737-c93a-4f5a-8b68-6f4ca9941912"
   resource_group_name = "${azurerm_resource_group.res-grp.name}"
   
-  sku_name = "standard"
+  sku = "standard"
 }
 
 resource "azurerm_managed_disk" "disk" {
