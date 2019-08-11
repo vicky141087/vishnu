@@ -59,5 +59,4 @@ resource "azurerm_storage_blob" "blob_storage" {
       key_url         = "${azurerm_key_vault.terrakeyvault.vault_uri}"
       source_vault_id = "${azurerm_key_vault.terrakeyvault.id}"
     }
-  }
 }
