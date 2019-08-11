@@ -3,7 +3,7 @@ provider "azurerm" {
 }
 
 data "azurerm_resource_group" "res-grp" {
-  name = "${var.resource_group_name}"
+  name = "my-group"
   location = "West US 2"
 }
 
