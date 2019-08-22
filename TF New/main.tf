@@ -29,8 +29,8 @@ resource "azurerm_managed_disk" "disk" {
   encryption_settings {
     enabled           = true
 
-    key_encryption_key {
-      key_url         = "${azurerm_key_vault.terrakeyvault.vault_uri}"
+    disk_encryption_key {
+      secret_url         = "${azurerm_key_vault.terrakeyvault.vault_uri}"
       source_vault_id = "${azurerm_key_vault.terrakeyvault.id}"
     }
   }
