@@ -18,6 +18,16 @@ resource "azurerm_key_vault" "terrakeyvault" {
   }
 }
 
+resource "azurerm_key_vault_secret" "secretitem" {
+  name         = "secret-sauce"
+  value        = "szechuan"
+  key_vault_id = "${azurerm_key_vault.terrakeyvault.id}"
+
+  tags = {
+    environment = "Production"
+  }
+}
+
 resource "azurerm_managed_disk" "disk" {
   name            = "my-disk"
   location            = "West US 2"
@@ -30,8 +40,8 @@ resource "azurerm_managed_disk" "disk" {
     enabled           = true
 
     disk_encryption_key {
-      secret_url         = "${azurerm_key_vault.terrakeyvault.vault_uri}"
-      source_vault_id = "${azurerm_key_vault.terrakeyvault.id}"
+      secret_url         = "${azurerm_key_vault_secret.secretitem.vault_uri}"
+      source_vault_id = "${azurerm_key_vault_secret.secretitem.id}"
     }
   }
 }
